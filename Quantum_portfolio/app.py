@@ -101,7 +101,7 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
     if st.button("👉 Khám Phá Dữ Liệu", use_container_width=True, key="btn_data"):
-        st.switch_page("app/pages/1_📊_Du_Lieu.py")
+        st.switch_page("pages/1_📊_Du_Lieu.py")
 
 with col2:
     st.markdown("""
@@ -112,7 +112,7 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
     if st.button("👉 Tối Ưu Cổ Điển", use_container_width=True, key="btn_mvo"):
-        st.switch_page("app/pages/2_📈_Co_Dien_MVO.py")
+        st.switch_page("pages/2_📈_Co_Dien_MVO.py")
 
 with col3:
     st.markdown("""
@@ -123,7 +123,7 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
     if st.button("👉 Tối Ưu Lượng Tử", use_container_width=True, key="btn_qaoa"):
-        st.switch_page("app/pages/3_⚛️_Luong_Tu_QAOA.py")
+        st.switch_page("pages/3_⚛️_Luong_Tu_QAOA.py")
 
 with col4:
     st.markdown("""
@@ -134,7 +134,7 @@ with col4:
     </div>
     """, unsafe_allow_html=True)
     if st.button("👉 So Sánh Tổng Hợp", use_container_width=True, key="btn_compare"):
-        st.switch_page("app/pages/4_🏆_So_Sanh.py")
+        st.switch_page("pages/4_🏆_So_Sanh.py")
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.info("👈 **Sử dụng menu bên trái** để điều hướng giữa các trang phân tích.")
