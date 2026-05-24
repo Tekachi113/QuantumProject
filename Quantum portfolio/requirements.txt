@@ -1,0 +1,40 @@
+# ============================================================
+# Quantum Portfolio Optimizer — Requirements
+# Python >= 3.10
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# ── Core data & math ────────────────────────────────────────
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+
+# ── Finance data ─────────────────────────────────────────────
+yfinance>=0.2.36
+
+# ── Classical optimization ───────────────────────────────────
+cvxpy>=1.4
+
+# ── Quantum computing ────────────────────────────────────────
+qiskit>=1.0
+qiskit-aer>=0.14
+qiskit-ibm-runtime>=0.20
+
+# ── Streamlit web app ────────────────────────────────────────
+streamlit>=1.30
+plotly>=5.18
+matplotlib>=3.7
+
+# ── Jupyter Notebook ─────────────────────────────────────────
+jupyter>=1.0
+notebook>=7.0
+ipykernel>=6.25
+nbformat>=5.9
+
+# ── Config & utilities ───────────────────────────────────────
+pyyaml>=6.0
+python-docx>=1.0
+
+# ── Testing ──────────────────────────────────────────────────
+pytest>=7.4
+pytest-cov>=4.1

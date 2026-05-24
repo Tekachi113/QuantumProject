@@ -1,0 +1,19 @@
+{
+  "simulator_mode": "noisy",
+  "best_objective": -19.773463569873424,
+  "feasible": true,
+  "n_iterations": 52,
+  "elapsed_s": 5.79,
+  "shots": 1024,
+  "depth": 2,
+  "budget": 2,
+  "n_assets": 5,
+  "tickers": [
+    "AAPL",
+    "GOOGL",
+    "JPM",
+    "MSFT",
+    "NVDA"
+  ],
+  "bitstring": "01100"
+}

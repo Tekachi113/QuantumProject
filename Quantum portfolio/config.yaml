@@ -1,0 +1,60 @@
+# ============================================================
+# Quantum Portfolio Optimizer — Cấu hình tập trung
+# ============================================================
+
+data:
+  default_tickers:
+    - AAPL
+    - MSFT
+    - GOOGL
+    - AMZN
+    - NVDA
+    - JPM
+    - JNJ
+    - V
+    - PG
+    - UNH
+
+  period_years: 3
+  interval: "1d"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  cache_days: 1
+
+processing:
+  returns_method: "log"
+  annualize_factor: 252
+  min_data_points: 100
+  max_missing_pct: 0.05
+
+classical:
+  risk_free_rate: 0.05
+  num_frontier_points: 50
+
+quantum:
+  # ── Simulator mode ─────────────────────────────────────────
+  # 'statevector' : exact, không shot noise  → debug/verify
+  # 'ideal'       : shot-based, không noise  → thực nghiệm sạch
+  # 'noisy'       : shot-based + IBM noise   → realistic simulation
+  simulator_mode: "ideal"
+
+  # ── Noise model (chỉ dùng khi simulator_mode = 'noisy') ───
+  noise:
+    single_qubit_error: 0.001   # 0.1% depolarizing error
+    two_qubit_error:    0.010   # 1.0% depolarizing error
+    readout_error:      0.010   # 1.0% readout error
+    t1_us: 100.0                # T1 relaxation time (μs)
+    t2_us:  80.0                # T2 dephasing time (μs)
+    gate_time_1q_us: 0.05       # single-qubit gate time (μs)
+    gate_time_2q_us: 0.30       # two-qubit gate time (μs)
+
+  # ── QAOA parameters ────────────────────────────────────────
+  qaoa_depth: 2                 # số layer p
+  optimizer: "COBYLA"           # COBYLA (p≤3) hoặc SPSA (p≥4)
+  max_iterations: 200
+  shots: 1024                   # bỏ qua khi simulator_mode='statevector'
+  max_qubits: 10                # giới hạn số tài sản encode
+
+app:
+  title: "Quantum Portfolio Optimizer"
+  theme: "light"
