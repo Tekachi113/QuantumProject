@@ -81,7 +81,7 @@ st.markdown("""
     <div class="stat-item"><div class="stat-val">3y</div><div class="stat-lbl">Dữ liệu lịch sử</div></div>
     <div class="stat-item"><div class="stat-val">QAOA</div><div class="stat-lbl">Thuật toán lượng tử</div></div>
     <div class="stat-item"><div class="stat-val">127</div><div class="stat-lbl">Qubits (ibm_brisbane)</div></div>
-    <div class="stat-item"><div class="stat-val">1.000</div><div class="stat-lbl">Approximation Ratio</div></div>
+    <div class="stat-item"><div class="stat-val">0.914</div><div class="stat-lbl">Approximation Ratio</div></div>
 </div>
 """, unsafe_allow_html=True)
 
