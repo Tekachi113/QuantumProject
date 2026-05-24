@@ -1,12 +1,10 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from app.components.sidebar import render_sidebar
+from components.sidebar import render_sidebar
 from utils import get_stock_data, calculate_returns, optimize_classical_mvo, generate_efficient_frontier
 
 st.set_page_config(page_title="Tối Ưu Cổ Điển | Quantum Portfolio", page_icon="📈", layout="wide")

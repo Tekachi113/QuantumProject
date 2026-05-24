@@ -1,6 +1,4 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 import os
-from app.components.sidebar import render_sidebar
+from components.sidebar import render_sidebar
 
 st.set_page_config(page_title="So Sánh Tổng Hợp | Quantum Portfolio", page_icon="🏆", layout="wide")
 
