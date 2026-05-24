@@ -19,7 +19,7 @@ selected_tickers, start_date, end_date, risk_aversion = render_sidebar()
 # Function to load pre-computed JSON results
 @st.cache_data
 def load_results():
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    base_dir = os.path.dirname(os.path.dirname(__file__))
     comp_path = os.path.join(base_dir, "comparison_results.json")
     hw_path = os.path.join(base_dir, "hardware_results.json")
     
