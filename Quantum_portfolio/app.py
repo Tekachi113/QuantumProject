@@ -100,6 +100,8 @@ with col1:
         <div class="nav-desc">Thống kê, ma trận tương quan, tăng trưởng tích lũy của 10 cổ phiếu S&amp;P500</div>
     </div>
     """, unsafe_allow_html=True)
+    if st.button("👉 Khám Phá Dữ Liệu", use_container_width=True, key="btn_data"):
+        st.switch_page("app/pages/1_📊_Du_Lieu.py")
 
 with col2:
     st.markdown("""
@@ -109,6 +111,8 @@ with col2:
         <div class="nav-desc">Mean-Variance Optimization (Markowitz MVO) với Efficient Frontier và phân bổ vốn tối ưu</div>
     </div>
     """, unsafe_allow_html=True)
+    if st.button("👉 Tối Ưu Cổ Điển", use_container_width=True, key="btn_mvo"):
+        st.switch_page("app/pages/2_📈_Co_Dien_MVO.py")
 
 with col3:
     st.markdown("""
@@ -118,6 +122,8 @@ with col3:
         <div class="nav-desc">QAOA (Quantum Approximate Optimization Algorithm) — mô phỏng Qiskit + kết quả IBM Quantum</div>
     </div>
     """, unsafe_allow_html=True)
+    if st.button("👉 Tối Ưu Lượng Tử", use_container_width=True, key="btn_qaoa"):
+        st.switch_page("app/pages/3_⚛️_Luong_Tu_QAOA.py")
 
 with col4:
     st.markdown("""
@@ -127,6 +133,8 @@ with col4:
         <div class="nav-desc">QAOA p=1,2,3 vs Cổ điển MVO vs IBM Hardware — phân tích ZNE và noise</div>
     </div>
     """, unsafe_allow_html=True)
+    if st.button("👉 So Sánh Tổng Hợp", use_container_width=True, key="btn_compare"):
+        st.switch_page("app/pages/4_🏆_So_Sanh.py")
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.info("👈 **Sử dụng menu bên trái** để điều hướng giữa các trang phân tích.")
