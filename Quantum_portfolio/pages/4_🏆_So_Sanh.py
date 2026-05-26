@@ -38,6 +38,14 @@ def load_results():
 
 comp_data, hw_data = load_results()
 
+
+# Tính returns để dùng cho cả QAOA live và Hardware
+from utils import get_stock_data, calculate_returns, solve_qaoa, _optimize_weights_for_selection
+
+with st.spinner("Đang tải dữ liệu..."):
+    prices_df = get_stock_data(selected_tickers, start_date, end_date)
+    _, mean_returns, cov_matrix = calculate_returns(prices_df)
+
 if not comp_data or not hw_data:
     st.error("Không tìm thấy file kết quả `comparison_results.json` hoặc `hardware_results.json`. Vui lòng chạy thí nghiệm lượng tử trước!")
     st.stop()
@@ -64,51 +72,89 @@ with tab1:
         })
         
     # 2. QAOA by p
-    qaoa = comp_data.get("qaoa_by_p", {})
-    for p, data in qaoa.items():
-        summary.append({
-            "Phương pháp": f"QAOA Simulator (p={p})",
-            "Lợi nhuận (%)": data.get("return", 0) * 100,
-            "Rủi ro (%)": data.get("risk", 0) * 100,
-            "Sharpe Ratio": data.get("sharpe", 0),
-            "Ghi chú": "Trọng số đều (Equal Weight)"
-        })
-        
-    # 3. Hardware
-    if hw_data:
-        summary.append({
-            "Phương pháp": "IBM Quantum (ibm_brisbane)",
-            "Lợi nhuận (%)": qaoa.get("1", {}).get("return", 0) * 100, # Use p=1 logic
-            "Rủi ro (%)": qaoa.get("1", {}).get("risk", 0) * 100,
-            "Sharpe Ratio": qaoa.get("1", {}).get("sharpe", 0),
-            "Ghi chú": f"Mitigated Energy: {hw_data.get('zne_mitigated_energy', 0):.4f}"
-        })
-        
-    sum_df = pd.DataFrame(summary)
+    # Bằng đoạn này — tính lại với optimal weights
+from utils import get_stock_data, calculate_returns, solve_qaoa, _optimize_weights_for_selection
+
+@st.cache_data
+def compute_qaoa_comparison(tickers, start, end, risk_aversion):
+    prices_df = get_stock_data(tickers, start, end)
+    _, mean_returns, cov_matrix = calculate_returns(prices_df)
+    mu = mean_returns.values
+    cov = cov_matrix.values
+    budget = max(1, len(tickers) // 2)
     
-    if not sum_df.empty:
-        # Plot Bar chart
-        fig = px.bar(
-            sum_df, 
-            x="Phương pháp", 
-            y="Sharpe Ratio",
-            color="Sharpe Ratio",
-            color_continuous_scale="Viridis",
-            text_auto=".2f",
-            title="So sánh Sharpe Ratio giữa các phương pháp"
-        )
-        fig.update_layout(template="plotly_white")
-        st.plotly_chart(fig, use_container_width=True)
+    results_by_p = {}
+    for p in [1, 2, 3]:
+        qaoa_results, _ = solve_qaoa(mean_returns, cov_matrix, risk_aversion, budget, p=p)
         
-        # Display Table
-        st.dataframe(
-            sum_df.style.format({
-                "Lợi nhuận (%)": "{:.2f}%", 
-                "Rủi ro (%)": "{:.2f}%", 
-                "Sharpe Ratio": "{:.4f}"
-            }),
-            use_container_width=True
+        # Lấy state có prob cao nhất và đủ số cổ phiếu
+        best = next(
+            (r for r in qaoa_results if r['num_selected'] == budget),
+            qaoa_results[0]  # fallback
         )
+        
+        x = best['binary_array']
+        w_full, ret, vol = _optimize_weights_for_selection(x, mu, cov, risk_aversion)
+        sharpe = ret / vol if vol > 0 else 0.0
+        
+        selected_names = [tickers[i] for i in range(len(tickers)) if x[i] == 1]
+        
+        results_by_p[p] = {
+            "return": ret,
+            "risk": vol,
+            "sharpe": sharpe,
+            "bitstring": best['state_str'],
+            "selected": selected_names,
+            "weights": w_full.tolist(),
+            "prob": best['prob']
+        }
+    
+    return results_by_p
+
+# Dùng trong tab1
+with st.spinner("Đang tính QAOA với optimal weights..."):
+    qaoa_live = compute_qaoa_comparison(
+        selected_tickers, start_date, end_date, risk_aversion
+    )
+
+for p, data in qaoa_live.items():
+    selected_str = ", ".join(data['selected'])
+    summary.append({
+        "Phương pháp": f"QAOA Simulator (p={p})",
+        "Lợi nhuận (%)": data["return"] * 100,
+        "Rủi ro (%)": data["risk"] * 100,
+        "Sharpe Ratio": data["sharpe"],
+        "Ghi chú": f"Chọn: {selected_str} | Prob: {data['prob']:.3f}"
+    })
+# 3. Hardware - dùng qaoa_live p=2 (phù hợp nhất với hardware thực)
+if hw_data:
+    hw_best_bitstring = hw_data.get("best_bitstring", "")
+    
+    if hw_best_bitstring:
+        # Tính optimal weights từ bitstring hardware thực
+        x_hw = np.array([int(b) for b in hw_best_bitstring])
+        mu = mean_returns.values
+        cov = cov_matrix.values
+        
+        w_hw, ret_hw, vol_hw = _optimize_weights_for_selection(
+            x_hw, mu, cov, risk_aversion
+        )
+        sharpe_hw = ret_hw / vol_hw if vol_hw > 0 else 0.0
+        selected_hw = [selected_tickers[i] for i in range(len(x_hw)) if x_hw[i] == 1]
+    else:
+        # Fallback nếu không có bitstring
+        ret_hw = qaoa_live.get(2, {}).get("return", 0)
+        vol_hw = qaoa_live.get(2, {}).get("risk", 0)
+        sharpe_hw = qaoa_live.get(2, {}).get("sharpe", 0)
+        selected_hw = []
+
+    summary.append({
+        "Phương pháp": "IBM Quantum (ibm_brisbane)",
+        "Lợi nhuận (%)": ret_hw * 100,
+        "Rủi ro (%)": vol_hw * 100,
+        "Sharpe Ratio": sharpe_hw,
+        "Ghi chú": f"Chọn: {', '.join(selected_hw)} | Mitigated Energy: {hw_data.get('zne_mitigated_energy', 0):.4f}"
+    })
 
 with tab2:
     st.subheader("Hội Tụ COBYLA theo số lớp (p)")

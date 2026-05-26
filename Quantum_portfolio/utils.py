@@ -402,10 +402,10 @@ def solve_qaoa(mean_returns, cov_matrix, risk_aversion, budget, p=1):
         results.append({
             'state_str': state_str,
             'binary_array': x,
-            'optimal_weights': w_full,   # ← thêm field này
+            'optimal_weights': w_full, 
             'prob': probs[idx],
-            'return': ret_opt,           # ← dùng MVO return
-            'risk': risk_opt,            # ← dùng MVO volatility
+            'return': ret_opt,           
+            'risk': risk_opt,            
             'num_selected': num_selected
         })
         
