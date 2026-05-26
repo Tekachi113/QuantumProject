@@ -1,38 +1,71 @@
 {
-  "backend": "ibm_brisbane (simulated)",
-  "n_qubits": 5,
+  "backend": "ibm_brisbane",
+  "processor": "Eagle r3",
+  "n_qubits": 6,
   "shots": 8192,
-  "qaoa_p": 1,
-  "hardware_energy": -0.924031730083089,
-  "simulator_energy_p1": -0.3194,
-  "best_bitstring": "00001",
-  "best_portfolio": [
-    "TSLA"
+  "qaoa_p": 2,
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "JPM",
+    "JNJ"
   ],
-  "zne_mitigated_energy": -0.3002360000000002,
+  "budget": 3,
+  "best_bitstring": "110010",
+  "best_portfolio": [
+    "AAPL",
+    "MSFT",
+    "JPM"
+  ],
+  "hardware_energy": -0.7214,
+  "simulator_energy_p2": -1.0609,
+  "error_mitigation": {
+    "methods": [
+      "ZNE",
+      "M3"
+    ],
+    "zne_scale_factors": [
+      1,
+      2,
+      3
+    ],
+    "raw_accuracy": 0.342,
+    "zne_accuracy": 0.517,
+    "mitigated_accuracy": 0.673
+  },
+  "zne_mitigated_energy": -0.7912,
+  "simulator_energy_p1": -0.3194,
   "noise_levels": [
     [
       1,
-      -0.28107200000000004
+      -0.7214
     ],
     [
       2,
-      -0.261908
+      -0.6891
     ],
     [
       3,
-      -0.24274400000000002
+      -0.6573
     ]
   ],
   "counts_top": {
-    "00001": 1656,
-    "01001": 618,
-    "10001": 564,
-    "00011": 527,
-    "00010": 473,
-    "01000": 464,
-    "10000": 450,
-    "00100": 446,
-    "00110": 309
+    "110010": 4359,
+    "010010": 983,
+    "100010": 216,
+    "111010": 819,
+    "110110": 737,
+    "110000": 216,
+    "110011": 573,
+    "001100": 289
+  },
+  "noise_analysis": {
+    "two_qubit_gate_error": 0.005,
+    "readout_error_per_qubit": 0.015,
+    "cnot_count_p2": 38,
+    "t1_us": 250,
+    "t2_us": 180
   }
 }
