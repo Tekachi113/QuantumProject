@@ -1,29 +1,4 @@
-"""
-======================================================================
-Quantum Portfolio Optimization — QAOA Implementation
-======================================================================
-Thành viên 2: Lập trình lượng tử
-Đề tài: Ứng dụng Tính toán Lượng tử trong Tối ưu hóa Danh mục Đầu tư
-Nền tảng: IBM Quantum (Qiskit) | Dữ liệu: S&P500 (yfinance)
-======================================================================
 
-Trách nhiệm:
-  - Xây mạch QAOA (Qiskit) với p = 1, 2, 3 layers
-  - Submit job lên IBM Quantum (ibm_brisbane)
-  - Áp dụng Error Mitigation (Zero Noise Extrapolation - ZNE)
-  - Thu thập và phân tích kết quả thực nghiệm
-
-Yêu cầu:
-  pip install qiskit qiskit-aer qiskit-ibm-runtime qiskit-algorithms
-              numpy pandas matplotlib scipy
-
-Sử dụng:
-  python qaoa_portfolio.py --mode simulator    # Chạy trên AerSimulator
-  python qaoa_portfolio.py --mode hardware     # Chạy trên IBM Quantum (cần API key)
-  python qaoa_portfolio.py --p 3               # Số QAOA layers
-  python qaoa_portfolio.py --shots 8192        # Số shots
-======================================================================
-"""
 
 import argparse
 import json
@@ -217,7 +192,7 @@ def circuit_depth_stats(qc: QuantumCircuit) -> dict:
 
 
 # ══════════════════════════════════════════════
-#  PHẦN 3: CHẠY QAOA (SIMULATOR)
+#  PHẦN 3: CHẠY QAOA 
 # ══════════════════════════════════════════════
 
 def evaluate_circuit(params: np.ndarray, n: int, p: int,
