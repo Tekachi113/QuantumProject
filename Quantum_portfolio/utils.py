@@ -98,6 +98,50 @@ def calculate_returns(prices_df):
     
     return daily_returns, mean_returns, cov_matrix
 
+def _optimize_weights_for_selection(x, mu_val, cov_val, risk_aversion):
+    """
+    Sau khi QAOA chọn được cổ phiếu (bitstring x),
+    chạy MVO trên subset đó để tìm optimal weights.
+    """
+    selected = np.where(x == 1)[0]
+    n_sel = len(selected)
+    
+    if n_sel == 0:
+        return x.copy(), 0.0, 0.0
+    
+    if n_sel == 1:
+        w_full = x.astype(float)
+        ret = float(mu_val[selected[0]])
+        vol = float(np.sqrt(cov_val[selected[0], selected[0]]))
+        return w_full, ret, vol
+    
+    mu_sub = mu_val[selected]
+    sigma_sub = cov_val[np.ix_(selected, selected)]
+    
+    w = cp.Variable(n_sel)
+    prob = cp.Problem(
+        cp.Maximize(mu_sub @ w - 0.5 * risk_aversion * cp.quad_form(w, sigma_sub)),
+        [cp.sum(w) == 1, w >= 0]
+    )
+    prob.solve()
+    
+    if w.value is not None:
+        w_sub = np.clip(w.value, 0, 1)
+        w_sub /= w_sub.sum()
+    else:
+        # fallback equal weight
+        w_sub = np.ones(n_sel) / n_sel
+    
+    # Map back to full weight vector
+    w_full = np.zeros(len(mu_val))
+    w_full[selected] = w_sub
+    
+    ret = float(mu_sub @ w_sub)
+    vol = float(np.sqrt(w_sub.T @ sigma_sub @ w_sub))
+    
+    return w_full, ret, vol
+
+
 def optimize_classical_mvo(mean_returns, cov_matrix, risk_aversion):
     """
     Performs Classical Mean-Variance Optimization (MVO) using CVXPY.
@@ -342,34 +386,26 @@ def solve_qaoa(mean_returns, cov_matrix, risk_aversion, budget, p=1):
     # We want to display the top 8 states (since 2^N can be large, we just show the most probable)
     for idx in top_indices[:12]:
         x = np.array([(idx >> i) & 1 for i in range(n)])
-        # Bitstring display in standard order (MSB to LSB), i.e., stock 0 is leftmost or rightmost?
-        # Let's keep it big-endian: left is stock index 0, right is stock index n-1.
-        # This matches the way we usually read arrays! So x[::-1] would make the first stock index 0 at the rightmost?
-        # Actually, if x[0] is the state of stock 0, then:
-        # stock_0 stock_1 ... stock_n-1:
-        # we can show it as "".join(str(val) for val in x) so that index 0 is leftmost!
         state_str = "".join(str(val) for val in x)
-        
-        # Calculate metrics of this state
         num_selected = int(np.sum(x))
+        
         if num_selected > 0:
-            ret = np.dot(mu_val, x)
-            # Volatility of equal weight allocation among selected stocks
-            # weights = x / sum(x)
-            w_eq = x / float(num_selected)
-            risk = np.sqrt(np.dot(w_eq, np.dot(cov_val, w_eq)))
-            ret_eq = np.dot(mu_val, w_eq)
+            # ← THAY BẰNG MVO OPTIMAL WEIGHTS
+            w_full, ret_opt, risk_opt = _optimize_weights_for_selection(
+                x, mu_val, cov_val, risk_aversion
+            )
         else:
-            ret = 0.0
-            risk = 0.0
-            ret_eq = 0.0
+            w_full = np.zeros(n)
+            ret_opt = 0.0
+            risk_opt = 0.0
             
         results.append({
             'state_str': state_str,
             'binary_array': x,
+            'optimal_weights': w_full,   # ← thêm field này
             'prob': probs[idx],
-            'return': ret_eq,  # Return of equal weighted selection
-            'risk': risk,      # Volatility of equal weighted selection
+            'return': ret_opt,           # ← dùng MVO return
+            'risk': risk_opt,            # ← dùng MVO volatility
             'num_selected': num_selected
         })
         
