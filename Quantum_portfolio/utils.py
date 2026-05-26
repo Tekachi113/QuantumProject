@@ -142,66 +142,56 @@ def optimize_classical_mvo(mean_returns, cov_matrix, risk_aversion):
         return np.ones(n) / n
     
 def generate_efficient_frontier(mean_returns, cov_matrix, risk_aversion, n_points=100):
-    """
-    Tạo đường biên hiệu quả Markowitz.
-    
-    Returns:
-        frontier_vols: list độ biến động dọc frontier
-        frontier_rets: list lợi nhuận dọc frontier
-        opt_vol: volatility của danh mục tối ưu theo risk_aversion
-        opt_ret: return của danh mục tối ưu theo risk_aversion
-    """
     n = len(mean_returns)
     mu = mean_returns.values if hasattr(mean_returns, 'values') else mean_returns
     Sigma = cov_matrix.values if hasattr(cov_matrix, 'values') else cov_matrix
 
-    # --- Tìm min/max return để quét frontier ---
-    # Min return: danh mục minimum variance
-    w = cp.Variable(n)
-    prob_min = cp.Problem(
-        cp.Minimize(cp.quad_form(w, Sigma)),
-        [cp.sum(w) == 1, w >= 0]
-    )
-    prob_min.solve(solver=cp.ECOS, verbose=False)
-    ret_min = float(mu @ w.value)
+    def solve_min_var(extra_constraints=None):
+        w = cp.Variable(n)
+        constraints = [cp.sum(w) == 1, w >= 0]
+        if extra_constraints:
+            constraints += extra_constraints
+        prob = cp.Problem(cp.Minimize(cp.quad_form(w, Sigma)), constraints)
+        prob.solve()  # để cvxpy tự chọn solver
+        return w.value, prob.status
 
-    # Max return: all-in vào cổ phiếu có return cao nhất
+    # Min return: minimum variance portfolio
+    w_val, status = solve_min_var()
+    if w_val is None:
+        return [], [], 0.0, 0.0
+    ret_min = float(mu @ w_val)
     ret_max = float(np.max(mu))
 
-    # --- Quét các mức return target ---
+    # Quét frontier
     target_rets = np.linspace(ret_min, ret_max * 0.99, n_points)
     frontier_vols = []
     frontier_rets = []
 
     for r_target in target_rets:
         w = cp.Variable(n)
-        constraints = [
-            cp.sum(w) == 1,
-            w >= 0,
-            mu @ w >= r_target
-        ]
-        prob = cp.Problem(cp.Minimize(cp.quad_form(w, Sigma)), constraints)
-        prob.solve(solver=cp.ECOS, verbose=False)
-
+        prob = cp.Problem(
+            cp.Minimize(cp.quad_form(w, Sigma)),
+            [cp.sum(w) == 1, w >= 0, mu @ w >= r_target]
+        )
+        prob.solve()  # tự chọn solver
+        
         if prob.status in ["optimal", "optimal_inaccurate"] and w.value is not None:
             vol = float(np.sqrt(w.value.T @ Sigma @ w.value))
             frontier_vols.append(vol)
             frontier_rets.append(float(mu @ w.value))
 
-    # --- Danh mục tối ưu theo risk_aversion ---
+    # Danh mục tối ưu theo risk_aversion
     w_opt = cp.Variable(n)
-    # Objective: maximize return - risk_aversion * variance
     prob_opt = cp.Problem(
         cp.Maximize(mu @ w_opt - risk_aversion * cp.quad_form(w_opt, Sigma)),
         [cp.sum(w_opt) == 1, w_opt >= 0]
     )
-    prob_opt.solve(solver=cp.ECOS, verbose=False)
+    prob_opt.solve()  # tự chọn solver
 
     if w_opt.value is not None:
         opt_vol = float(np.sqrt(w_opt.value.T @ Sigma @ w_opt.value))
         opt_ret = float(mu @ w_opt.value)
     else:
-        # Fallback: dùng điểm giữa frontier
         opt_vol = frontier_vols[len(frontier_vols) // 2] if frontier_vols else 0.0
         opt_ret = frontier_rets[len(frontier_rets) // 2] if frontier_rets else 0.0
 
