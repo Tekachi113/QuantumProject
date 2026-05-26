@@ -1,3 +1,5 @@
+import cvxpy as cp
+import numpy as np
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -138,78 +140,72 @@ def optimize_classical_mvo(mean_returns, cov_matrix, risk_aversion):
     except Exception as e:
         print(f"MVO optimization error: {e}")
         return np.ones(n) / n
-
-def generate_efficient_frontier(mean_returns, cov_matrix, current_risk_aversion, num_portfolios=1000):
+    
+def generate_efficient_frontier(mean_returns, cov_matrix, risk_aversion, n_points=100):
     """
-    Generates:
-    1. A cloud of random portfolios (expected return, risk/volatility, Sharpe Ratio).
-    2. The precise Efficient Frontier line by solving MVO for various risk aversion coefficients.
-    3. The specific optimal portfolio for the current risk aversion coefficient.
+    Tạo đường biên hiệu quả Markowitz.
+    
+    Returns:
+        frontier_vols: list độ biến động dọc frontier
+        frontier_rets: list lợi nhuận dọc frontier
+        opt_vol: volatility của danh mục tối ưu theo risk_aversion
+        opt_ret: return của danh mục tối ưu theo risk_aversion
     """
     n = len(mean_returns)
-    mu = mean_returns.values
-    Sigma = cov_matrix.values
-    
-    # 1. Generate Random Portfolios for the cloud
-    results = []
-    # Set seed for reproducible visualization
-    np.random.seed(42)
-    
-    for _ in range(num_portfolios):
-        # Dirichlet distribution gives uniform distribution over the simplex sum(w) = 1
-        w = np.random.dirichlet(np.ones(n))
-        
-        # Portfolio return
-        p_return = np.dot(w, mu)
-        # Portfolio volatility (risk)
-        p_vol = np.sqrt(np.dot(w, np.dot(Sigma, w)))
-        # Sharpe Ratio (assuming risk-free rate = 0.02 or 2%)
-        rf = 0.02
-        sharpe = (p_return - rf) / p_vol if p_vol > 0 else 0
-        
-        results.append({
-            'return': p_return,
-            'volatility': p_vol,
-            'sharpe': sharpe,
-            'weights': w
-        })
-        
-    random_portfolios = pd.DataFrame(results)
-    
-    # 2. Generate Efficient Frontier Curve
-    frontier_returns = []
-    frontier_vols = []
-    # Sample risk aversion from very high (low risk) to very low (high return)
-    # Using log-spacing for fine resolution at low risk aversion
-    risk_aversions = np.logspace(-1.0, 2.5, 50)
-    
-    for ra in risk_aversions:
-        w_opt = optimize_classical_mvo(mean_returns, cov_matrix, ra)
-        p_ret = np.dot(w_opt, mu)
-        p_vol = np.sqrt(np.dot(w_opt, np.dot(Sigma, w_opt)))
-        frontier_returns.append(p_ret)
-        frontier_vols.append(p_vol)
-        
-    frontier_df = pd.DataFrame({
-        'return': frontier_returns,
-        'volatility': frontier_vols
-    }).sort_values('volatility')
-    
-    # 3. Calculate current optimal portfolio
-    w_opt_current = optimize_classical_mvo(mean_returns, cov_matrix, current_risk_aversion)
-    opt_ret = np.dot(w_opt_current, mu)
-    opt_vol = np.sqrt(np.dot(w_opt_current, np.dot(Sigma, w_opt_current)))
-    opt_sharpe = (opt_ret - 0.02) / opt_vol if opt_vol > 0 else 0
-    
-    opt_portfolio = {
-        'return': opt_ret,
-        'volatility': opt_vol,
-        'sharpe': opt_sharpe,
-        'weights': w_opt_current
-    }
-    
-    return random_portfolios, frontier_df, opt_portfolio
+    mu = mean_returns.values if hasattr(mean_returns, 'values') else mean_returns
+    Sigma = cov_matrix.values if hasattr(cov_matrix, 'values') else cov_matrix
 
+    # --- Tìm min/max return để quét frontier ---
+    # Min return: danh mục minimum variance
+    w = cp.Variable(n)
+    prob_min = cp.Problem(
+        cp.Minimize(cp.quad_form(w, Sigma)),
+        [cp.sum(w) == 1, w >= 0]
+    )
+    prob_min.solve(solver=cp.ECOS, verbose=False)
+    ret_min = float(mu @ w.value)
+
+    # Max return: all-in vào cổ phiếu có return cao nhất
+    ret_max = float(np.max(mu))
+
+    # --- Quét các mức return target ---
+    target_rets = np.linspace(ret_min, ret_max * 0.99, n_points)
+    frontier_vols = []
+    frontier_rets = []
+
+    for r_target in target_rets:
+        w = cp.Variable(n)
+        constraints = [
+            cp.sum(w) == 1,
+            w >= 0,
+            mu @ w >= r_target
+        ]
+        prob = cp.Problem(cp.Minimize(cp.quad_form(w, Sigma)), constraints)
+        prob.solve(solver=cp.ECOS, verbose=False)
+
+        if prob.status in ["optimal", "optimal_inaccurate"] and w.value is not None:
+            vol = float(np.sqrt(w.value.T @ Sigma @ w.value))
+            frontier_vols.append(vol)
+            frontier_rets.append(float(mu @ w.value))
+
+    # --- Danh mục tối ưu theo risk_aversion ---
+    w_opt = cp.Variable(n)
+    # Objective: maximize return - risk_aversion * variance
+    prob_opt = cp.Problem(
+        cp.Maximize(mu @ w_opt - risk_aversion * cp.quad_form(w_opt, Sigma)),
+        [cp.sum(w_opt) == 1, w_opt >= 0]
+    )
+    prob_opt.solve(solver=cp.ECOS, verbose=False)
+
+    if w_opt.value is not None:
+        opt_vol = float(np.sqrt(w_opt.value.T @ Sigma @ w_opt.value))
+        opt_ret = float(mu @ w_opt.value)
+    else:
+        # Fallback: dùng điểm giữa frontier
+        opt_vol = frontier_vols[len(frontier_vols) // 2] if frontier_vols else 0.0
+        opt_ret = frontier_rets[len(frontier_rets) // 2] if frontier_rets else 0.0
+
+    return frontier_vols, frontier_rets, opt_vol, opt_ret
 # ==========================================
 # QUANTUM OPTIMIZATION (QAOA) BACKEND
 # ==========================================
